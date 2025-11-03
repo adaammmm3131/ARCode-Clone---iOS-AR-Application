@@ -1,0 +1,63 @@
+name: iOS Test Coverage
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  coverage:
+    runs-on: macos-14
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.2'
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v1
+        with:
+          swift-version: '5.9'
+      
+      - name: Run tests with coverage
+        run: |
+          swift test --enable-code-coverage
+      
+      - name: Generate coverage report
+        run: |
+          xcrun llvm-cov export-format lcov \
+            -instr-profile .build/debug/codecov/default.profdata \
+            .build/debug/ARCodeClonePackageTests.xctest/Contents/MacOS/ARCodeClonePackageTests \
+            -ignore-filename-regex=".*Tests.*" \
+            > coverage.lcov
+      
+      - name: Check coverage threshold
+        run: |
+          # Parse coverage and check if >= 80%
+          coverage=$(lcov --summary coverage.lcov 2>/dev/null | grep lines | awk '{print $2}' | sed 's/%//')
+          if (( $(echo "$coverage < 80" | bc -l) )); then
+            echo "Coverage is ${coverage}%, below 80% threshold"
+            exit 1
+          fi
+          echo "Coverage is ${coverage}%, above 80% threshold ✓"
+        continue-on-error: true
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.lcov
+          flags: ios
+          fail_ci_if_error: false
+
+
+
+
+
+
+

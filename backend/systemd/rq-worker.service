@@ -1,0 +1,30 @@
+[Unit]
+Description=ARCode RQ Worker
+After=network.target redis.service postgresql.service
+
+[Service]
+Type=simple
+User=arcode
+Group=arcode
+WorkingDirectory=/opt/arcode/backend
+Environment="PATH=/opt/arcode/backend/venv/bin"
+EnvironmentFile=/opt/arcode/backend/.env
+ExecStart=/opt/arcode/backend/venv/bin/rq worker --url redis://localhost:6379/0 default high low
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+
+
+
+
+
+
+

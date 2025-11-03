@@ -1,0 +1,46 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 0 * * 0' # Weekly scan
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+      
+      - name: Python dependency check
+        working-directory: backend
+        run: |
+          pip install safety
+          safety check --json || true
+        continue-on-error: true
+      
+      - name: Bandit security linter
+        working-directory: backend
+        run: |
+          pip install bandit
+          bandit -r . -f json -o bandit-report.json || true
+

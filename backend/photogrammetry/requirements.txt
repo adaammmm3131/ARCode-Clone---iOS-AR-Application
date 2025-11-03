@@ -1,0 +1,23 @@
+# Requirements pour pipeline photogrammétrie
+opencv-python>=4.8.0
+opencv-contrib-python>=4.8.0
+numpy>=1.24.0
+open3d>=0.17.0
+trimesh>=3.20.0
+
+# Flask API
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# Cloudflare R2
+boto3>=1.34.0
+
+# COLMAP doit être installé séparément depuis source
+# Instructions: https://colmap.github.io/install.html
+#
+# Blender doit être installé pour mesh_optimizer.py
+# Ubuntu: sudo apt-get install blender
+#
+# usdzip tool (macOS seulement, pour USDZ export)
+# Nécessite Xcode Command Line Tools
+

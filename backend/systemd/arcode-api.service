@@ -1,0 +1,30 @@
+[Unit]
+Description=ARCode Flask API
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=simple
+User=arcode
+Group=arcode
+WorkingDirectory=/opt/arcode/backend
+Environment="PATH=/opt/arcode/backend/venv/bin"
+EnvironmentFile=/opt/arcode/backend/.env
+ExecStart=/opt/arcode/backend/venv/bin/python -m api.app
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+
+
+
+
+
+
+

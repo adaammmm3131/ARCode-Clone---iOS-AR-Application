@@ -1,0 +1,16 @@
+PyJWT==2.8.0
+python-magic==0.4.27
+Pillow==10.2.0
+redis==5.0.1
+psycopg2-binary==2.9.9
+
+
+
+
+
+
+
+
+
+
+

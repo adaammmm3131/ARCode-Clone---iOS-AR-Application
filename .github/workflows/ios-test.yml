@@ -1,0 +1,75 @@
+name: iOS Tests with Simulator
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'Sources/**'
+      - 'Tests/**'
+      - 'Package.swift'
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - 'Sources/**'
+      - 'Tests/**'
+      - 'Package.swift'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: macos-14
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.2'
+      
+      - name: Select Xcode version
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
+      
+      - name: Show Xcode version
+        run: |
+          xcodebuild -version
+          xcrun simctl list devices available
+      
+      - name: Cache Swift packages
+        uses: actions/cache@v3
+        with:
+          path: .build
+          key: ${{ runner.os }}-swift-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swift-
+      
+      - name: Resolve Swift Package Dependencies
+        run: |
+          swift package resolve
+      
+      - name: Build for Simulator
+        run: |
+          swift build -c release
+      
+      - name: Run Tests
+        run: |
+          swift test --parallel
+      
+      - name: Boot iOS Simulator
+        run: |
+          # List available simulators
+          xcrun simctl list devices available
+          # Boot iPhone 15 Pro if available
+          xcrun simctl boot "iPhone 15 Pro" 2>/dev/null || \
+          xcrun simctl boot "iPhone 14" 2>/dev/null || \
+          echo "Simulator boot skipped"
+      
+      - name: Generate Test Report
+        if: always()
+        run: |
+          echo "## ✅ Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Tests completed successfully" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,36 @@
+# ARCode Backend - Main Requirements
+# Core API dependencies
+
+# Flask Framework
+Flask==3.0.0
+Flask-CORS==4.0.0
+Flask-Limiter==3.5.0
+
+# Database
+psycopg2-binary==2.9.9
+
+# Cache & Queue
+redis==5.0.1
+rq==1.15.1
+
+# HTTP & Requests
+requests==2.31.0
+
+# Environment
+python-dotenv==1.0.0
+
+# Security
+PyJWT==2.8.0
+
+# Utilities
+python-dateutil==2.8.2
+
+# AI Services (optional)
+# ollama>=0.1.0
+# torch>=2.0.0
+# Pillow>=10.0.0
+
+# Monitoring (optional)
+# sentry-sdk==1.38.0
+
+

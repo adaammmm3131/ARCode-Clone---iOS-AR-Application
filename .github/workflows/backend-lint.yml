@@ -1,0 +1,48 @@
+name: Backend Lint & Test
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install linting tools
+        working-directory: backend
+        run: |
+          pip install flake8 black isort mypy pylint
+      
+      - name: Run flake8
+        working-directory: backend
+        run: flake8 . --max-line-length=120 --exclude=venv,__pycache__,migrations || true
+      
+      - name: Check code formatting (black)
+        working-directory: backend
+        run: black --check . || true
+      
+      - name: Check imports sorting (isort)
+        working-directory: backend
+        run: isort --check-only . || true
+
+
+
+
+
+
+

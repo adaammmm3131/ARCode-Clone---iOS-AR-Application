@@ -1,0 +1,900 @@
+openapi: 3.0.3
+info:
+  title: ARCode Clone API
+  description: API REST complète pour l'application ARCode Clone iOS
+  version: 1.0.0
+  contact:
+    name: ARCode Support
+    email: support@ar-code.com
+    url: https://ar-code.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.ar-code.com
+    description: Production
+  - url: https://staging-api.ar-code.com
+    description: Staging
+  - url: http://localhost:8080
+    description: Local Development
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: AR Codes
+    description: AR Code management
+  - name: CTA Links
+    description: Call-to-Action links
+  - name: A/B Testing
+    description: A/B testing management
+  - name: Workspaces
+    description: Workspace collaboration
+  - name: Analytics
+    description: Analytics and tracking
+  - name: Upload
+    description: File uploads
+  - name: Processing
+    description: Background processing jobs
+  - name: AI
+    description: AI generation endpoints
+  - name: White Label
+    description: White label configuration
+  - name: OAuth
+    description: OAuth 2.0 authentication
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Vérifier le statut de l'API
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /api/v1/ar-codes/{id}:
+    get:
+      tags:
+        - AR Codes
+      summary: Get AR Code
+      description: Récupérer un AR Code par ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: AR Code retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ARCode'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - AR Codes
+      summary: Update AR Code
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                is_public:
+                  type: boolean
+      responses:
+        '200':
+          description: AR Code updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ARCode'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - AR Codes
+      summary: Delete AR Code
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: AR Code deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/ar-codes/create:
+    post:
+      tags:
+        - AR Codes
+      summary: Create AR Code
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - type
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                type:
+                  type: string
+                  enum: [object_capture, face_filter, ai_code, video, portal, text, photo, logo, splat, data]
+                is_public:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: AR Code created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ARCode'
+
+  /api/v1/cta-links/{ar_code_id}:
+    get:
+      tags:
+        - CTA Links
+      summary: Get CTA Links
+      description: Récupérer tous les CTA links d'un AR Code
+      parameters:
+        - name: ar_code_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of CTA links
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CTALink'
+
+  /api/v1/cta-links:
+    post:
+      tags:
+        - CTA Links
+      summary: Create CTA Link
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CTALinkCreate'
+      responses:
+        '201':
+          description: CTA Link created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CTALink'
+
+  /api/v1/cta-links/{id}:
+    put:
+      tags:
+        - CTA Links
+      summary: Update CTA Link
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CTALinkUpdate'
+      responses:
+        '200':
+          description: CTA Link updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CTALink'
+
+    delete:
+      tags:
+        - CTA Links
+      summary: Delete CTA Link
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: CTA Link deleted
+
+  /api/v1/ab-tests/{ar_code_id}:
+    get:
+      tags:
+        - A/B Testing
+      summary: Get AB Test
+      description: Récupérer le test A/B actif d'un AR Code
+      parameters:
+        - name: ar_code_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: AB Test or null
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ABTest'
+
+  /api/v1/ab-tests:
+    post:
+      tags:
+        - A/B Testing
+      summary: Create AB Test
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ABTestCreate'
+      responses:
+        '201':
+          description: AB Test created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ABTest'
+
+  /api/v1/ab-tests/{test_id}/results:
+    get:
+      tags:
+        - A/B Testing
+      summary: Get AB Test Results
+      parameters:
+        - name: test_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: AB Test results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ABTestResults'
+
+  /api/v1/workspaces:
+    get:
+      tags:
+        - Workspaces
+      summary: Get Workspaces
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of workspaces
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Workspace'
+
+    post:
+      tags:
+        - Workspaces
+      summary: Create Workspace
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Workspace created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+
+  /api/v1/analytics/track:
+    post:
+      tags:
+        - Analytics
+      summary: Track Event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyticsEvent'
+      responses:
+        '200':
+          description: Event tracked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /api/v1/3d/upload:
+    post:
+      tags:
+        - Upload
+      summary: Upload 3D Model
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                ar_code_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: File uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+
+  /api/v1/3d/photogrammetry:
+    post:
+      tags:
+        - Processing
+      summary: Start Photogrammetry
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - video_url
+              properties:
+                video_url:
+                  type: string
+                  format: uri
+                ar_code_id:
+                  type: string
+                  format: uuid
+      responses:
+        '202':
+          description: Job started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingJob'
+
+  /api/v1/ai/generation/txt2img:
+    post:
+      tags:
+        - AI
+      summary: Generate Image from Text
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Txt2ImgRequest'
+      responses:
+        '200':
+          description: Image generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIGenerationResponse'
+
+  /oauth/token:
+    post:
+      tags:
+        - OAuth
+      summary: OAuth Token
+      description: OAuth 2.0 token endpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/AuthorizationCodeRequest'
+                - $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ARCode:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        type:
+          type: string
+          enum: [object_capture, face_filter, ai_code, video, portal, text, photo, logo, splat, data]
+        qr_code_url:
+          type: string
+          format: uri
+        asset_url:
+          type: string
+          format: uri
+          nullable: true
+        thumbnail_url:
+          type: string
+          format: uri
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        user_id:
+          type: string
+          format: uuid
+        is_public:
+          type: boolean
+        metadata:
+          type: object
+          properties:
+            format:
+              type: string
+            size:
+              type: integer
+            dimensions:
+              type: object
+              nullable: true
+              properties:
+                width:
+                  type: number
+                height:
+                  type: number
+                depth:
+                  type: number
+            processing_status:
+              type: string
+            processing_progress:
+              type: number
+              minimum: 0
+              maximum: 1
+
+    CTALink:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ar_code_id:
+          type: string
+          format: uuid
+        button_text:
+          type: string
+        button_style:
+          type: string
+          enum: [primary, secondary, outline, text, icon]
+        destination_url:
+          type: string
+          format: uri
+        destination_type:
+          type: string
+          enum: [product_page, landing_page, app_download, social, website, deep_link, email, phone]
+        position:
+          type: string
+          enum: [top_left, top_center, top_right, bottom_left, bottom_center, bottom_right, center, floating]
+        is_enabled:
+          type: boolean
+        variant:
+          type: string
+          nullable: true
+
+    CTALinkCreate:
+      type: object
+      required:
+        - ar_code_id
+        - button_text
+        - destination_url
+        - destination_type
+      properties:
+        ar_code_id:
+          type: string
+          format: uuid
+        button_text:
+          type: string
+        button_style:
+          type: string
+          default: primary
+        destination_url:
+          type: string
+          format: uri
+        destination_type:
+          type: string
+        position:
+          type: string
+          default: bottom_center
+
+    CTALinkUpdate:
+      type: object
+      properties:
+        button_text:
+          type: string
+        button_style:
+          type: string
+        destination_url:
+          type: string
+          format: uri
+        position:
+          type: string
+        is_enabled:
+          type: boolean
+
+    ABTest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ar_code_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        is_active:
+          type: boolean
+        variants:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              weight:
+                type: integer
+              cta_link_id:
+                type: string
+                format: uuid
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        winner_variant_id:
+          type: string
+          nullable: true
+
+    ABTestCreate:
+      type: object
+      required:
+        - ar_code_id
+        - name
+        - variants
+      properties:
+        ar_code_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        variants:
+          type: array
+          items:
+            type: object
+        is_active:
+          type: boolean
+          default: true
+
+    ABTestResults:
+      type: object
+      properties:
+        test_id:
+          type: string
+          format: uuid
+        variants:
+          type: array
+          items:
+            type: object
+            properties:
+              variant_id:
+                type: string
+              clicks:
+                  type: integer
+              conversions:
+                  type: integer
+              conversion_rate:
+                  type: number
+
+    Workspace:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        owner_id:
+          type: string
+          format: uuid
+        settings:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AnalyticsEvent:
+      type: object
+      required:
+        - event_type
+      properties:
+        event_type:
+          type: string
+          enum: [qr_scan, placement, interaction, screenshot, conversion]
+        ar_code_id:
+          type: string
+          format: uuid
+        metadata:
+          type: object
+
+    UploadResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        status:
+          type: string
+
+    ProcessingJob:
+      type: object
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        estimated_time:
+          type: integer
+          description: Estimated time in seconds
+
+    Txt2ImgRequest:
+      type: object
+      required:
+        - prompt
+      properties:
+        prompt:
+          type: string
+        negative_prompt:
+          type: string
+        steps:
+          type: integer
+          default: 20
+        cfg_scale:
+          type: number
+          default: 7.5
+        width:
+          type: integer
+          default: 512
+        height:
+          type: integer
+          default: 512
+        model:
+          type: string
+          default: sd-v1-5
+
+    AIGenerationResponse:
+      type: object
+      properties:
+        image_id:
+          type: string
+          format: uuid
+        image_url:
+          type: string
+          format: uri
+        seed:
+          type: integer
+        processing_time:
+          type: number
+
+    AuthorizationCodeRequest:
+      type: object
+      required:
+        - grant_type
+        - code
+        - client_id
+        - client_secret
+      properties:
+        grant_type:
+          type: string
+          enum: [authorization_code]
+        code:
+          type: string
+        client_id:
+          type: string
+        client_secret:
+          type: string
+        redirect_uri:
+          type: string
+          format: uri
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - grant_type
+        - refresh_token
+        - client_id
+        - client_secret
+      properties:
+        grant_type:
+          type: string
+          enum: [refresh_token]
+        refresh_token:
+          type: string
+        client_id:
+          type: string
+        client_secret:
+          type: string
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          default: Bearer
+        expires_in:
+          type: integer
+        scope:
+          type: string
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Not found
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Unauthorized
+
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Rate limit exceeded

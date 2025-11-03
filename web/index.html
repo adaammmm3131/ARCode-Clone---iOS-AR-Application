@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Code - Scan QR Code</title>
+    <meta name="description" content="Scan AR Code QR to experience augmented reality">
+    
+    <!-- DNS Prefetch -->
+    <link rel="dns-prefetch" href="https://assets.ar-code.com">
+    <link rel="dns-prefetch" href="https://api.ar-code.com">
+    
+    <!-- Preconnect -->
+    <link rel="preconnect" href="https://assets.ar-code.com" crossorigin>
+    <link rel="preconnect" href="https://api.ar-code.com" crossorigin>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/qr-scanner/scanner.js" as="script">
+    <link rel="preload" href="/styles.css" as="style">
+    
+    <link rel="stylesheet" href="/styles.css">
+    
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            max-width: 600px;
+            padding: 2rem;
+        }
+        .logo {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 2rem;
+            background: white;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+        .cta-button {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: transform 0.2s;
+        }
+        .cta-button:hover {
+            transform: scale(1.05);
+        }
+        .features {
+            margin-top: 3rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1.5rem;
+        }
+        .feature {
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">AR</div>
+        <h1>AR Code</h1>
+        <p>Scan any AR Code QR to experience augmented reality</p>
+        
+        <a href="/qr-scanner/" class="cta-button">Scan QR Code</a>
+        
+        <div class="features">
+            <div class="feature">
+                <h3>3D Models</h3>
+                <p>Interactive 3D objects</p>
+            </div>
+            <div class="feature">
+                <h3>AR Experiences</h3>
+                <p>Immersive AR content</p>
+            </div>
+            <div class="feature">
+                <h3>AI Powered</h3>
+                <p>AI-generated content</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Lazy load non-critical scripts -->
+    <script>
+        // Lazy load analytics
+        window.addEventListener('load', () => {
+            const script = document.createElement('script');
+            script.src = '/analytics.js';
+            script.defer = true;
+            document.body.appendChild(script);
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+

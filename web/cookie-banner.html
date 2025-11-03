@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Consent</title>
+    <style>
+        .cookie-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 1.5rem;
+            z-index: 10000;
+            display: none;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .cookie-banner.show {
+            display: block;
+        }
+        
+        .cookie-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .cookie-text {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .cookie-text p {
+            margin: 0;
+            line-height: 1.5;
+        }
+        
+        .cookie-text a {
+            color: #6C5CE7;
+            text-decoration: underline;
+        }
+        
+        .cookie-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .cookie-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+        
+        .cookie-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .cookie-btn-accept {
+            background: #6C5CE7;
+            color: white;
+        }
+        
+        .cookie-btn-reject {
+            background: transparent;
+            color: white;
+            border: 1px solid white;
+        }
+        
+        .cookie-btn-settings {
+            background: transparent;
+            color: #6C5CE7;
+            border: 1px solid #6C5CE7;
+        }
+        
+        @media (max-width: 768px) {
+            .cookie-content {
+                flex-direction: column;
+            }
+            
+            .cookie-buttons {
+                width: 100%;
+            }
+            
+            .cookie-btn {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="cookie-banner" class="cookie-banner">
+        <div class="cookie-content">
+            <div class="cookie-text">
+                <p>
+                    Nous utilisons des cookies pour améliorer votre expérience, analyser le trafic et personnaliser le contenu.
+                    <a href="/privacy">En savoir plus</a>
+                </p>
+            </div>
+            <div class="cookie-buttons">
+                <button class="cookie-btn cookie-btn-reject" onclick="rejectCookies()">Refuser</button>
+                <button class="cookie-btn cookie-btn-settings" onclick="openSettings()">Paramètres</button>
+                <button class="cookie-btn cookie-btn-accept" onclick="acceptCookies()">Accepter</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Check if consent already given
+        function hasConsent() {
+            return localStorage.getItem('cookie_consent') !== null;
+        }
+        
+        // Show banner if no consent
+        if (!hasConsent()) {
+            document.getElementById('cookie-banner').classList.add('show');
+        }
+        
+        function acceptCookies() {
+            saveConsent({
+                analytics: true,
+                marketing: true,
+                cookies: true
+            });
+            hideBanner();
+        }
+        
+        function rejectCookies() {
+            saveConsent({
+                analytics: false,
+                marketing: false,
+                cookies: false
+            });
+            hideBanner();
+        }
+        
+        function openSettings() {
+            // Open consent settings modal/page
+            window.location.href = '/consent-settings';
+        }
+        
+        function saveConsent(consents) {
+            localStorage.setItem('cookie_consent', JSON.stringify({
+                ...consents,
+                timestamp: new Date().toISOString()
+            }));
+            
+            // Send to backend
+            if (window.userId) {
+                fetch('/api/v1/gdpr/consent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${window.accessToken}`
+                    },
+                    body: JSON.stringify(consents)
+                }).catch(err => console.error('Error saving consent:', err));
+            }
+        }
+        
+        function hideBanner() {
+            document.getElementById('cookie-banner').classList.remove('show');
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
