@@ -48,62 +48,6 @@ playground.xcworkspace
 
 .build/
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-env/
-ENV/
-*.egg-info/
-dist/
-build/
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-*.lnk
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Logs
-*.log
-debug.log
-
-# Environment
-.env
-.env.local
-.env.*.local
-
-# Backend specific
-backend/venv/
-backend/.env
-backend/*.pyc
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
-
-# Exclude parent directories (Windows user files)
-../
-../../
-../../../
-
 # CocoaPods
 #
 # We recommend against adding the Pods directory to your .gitignore. However
@@ -158,6 +102,51 @@ iOSInjectionProject/
 
 # SwiftLint
 .swiftlint.yml.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+backend/venv/
+
+# Logs
+*.log
+debug.log
+
+# OS
+Thumbs.db
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build
+*.ipa
+*.app
+*.dSYM
+build/
+dist/
+*.xcarchive
+
+# Environment
+.env
+.env.local
+*.p12
+*.mobileprovision
+
+# Secrets
+secrets/
+*.key
+*.pem
 
 
 
