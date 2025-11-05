@@ -59,6 +59,8 @@ jobs:
           echo "iOS Simulator SDK: $IOS_SDK"
       
       - name: Resolve Dependencies (if needed)
+        env:
+          SDKROOT: ${{ env.IOS_SDK }}
         run: |
           # Only resolve if Package.resolved doesn't exist
           # This allows us to use cached resolution from previous builds
@@ -66,25 +68,28 @@ jobs:
             echo "✅ Using existing Package.resolved from cache"
           else
             echo "📦 Package.resolved not found, attempting to resolve..."
-            # Try to resolve with macOS SDK (this will work for manifest compilation)
-            # The actual source code will be compiled with iOS SDK later
-            swift package resolve || echo "⚠️  Resolution failed, will try during build"
+            # Force SDKROOT before any swift command
+            export SDKROOT="${{ env.IOS_SDK }}"
+            export DEVELOPER_DIR="/Applications/Xcode_15.2.app/Contents/Developer"
+            # Use xcrun to ensure iOS SDK is used
+            xcrun --sdk iphonesimulator swift package resolve || echo "⚠️  Resolution failed, will try during build"
           fi
       
       - name: Build and Test for iOS Simulator
         env:
           SDKROOT: ${{ env.IOS_SDK }}
+          DEVELOPER_DIR: /Applications/Xcode_15.2.app/Contents/Developer
         run: |
           echo "Building and testing for iOS Simulator..."
           
-          # Force iOS environment
+          # Force iOS environment - MUST be set before any swift command
           export SDKROOT="${{ env.IOS_SDK }}"
           export DEVELOPER_DIR="/Applications/Xcode_15.2.app/Contents/Developer"
           
           # Build tests with iOS SDK flags
-          # Note: The manifest was compiled with macOS SDK, but source code uses iOS SDK
+          # Use xcrun with explicit SDK to force iOS SDK for manifest compilation
           echo "📦 Building with tests..."
-          xcrun swift build \
+          xcrun --sdk iphonesimulator swift build \
             --build-tests \
             -c release \
             -Xswiftc -sdk \
@@ -96,7 +101,7 @@ jobs:
             -Xswiftc "${{ env.IOS_SDK }}" \
             --arch arm64 || {
               echo "⚠️  Build failed, trying without explicit arch..."
-              xcrun swift build \
+              xcrun --sdk iphonesimulator swift build \
                 --build-tests \
                 -c release \
                 -Xswiftc -sdk \
@@ -110,7 +115,7 @@ jobs:
           
           echo "🧪 Running tests for iOS Simulator..."
           # Try to run tests - if it fails due to manifest, use the built binary
-          xcrun swift test \
+          xcrun --sdk iphonesimulator swift test \
             --enable-code-coverage \
             --parallel \
             -Xswiftc -sdk \
