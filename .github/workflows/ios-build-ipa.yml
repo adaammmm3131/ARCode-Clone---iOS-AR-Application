@@ -56,6 +56,7 @@ jobs:
       - name: Resolve Swift Package Dependencies
         env:
           SDKROOT: ${{ env.IOS_DEVICE_SDK }}
+          SWIFT_TARGET_TRIPLE: arm64-apple-ios16.0
         run: |
           # Verify Package.swift exists
           if [ ! -f Package.swift ]; then
@@ -72,13 +73,18 @@ jobs:
           fi
           
           echo "📦 Resolving Swift Package dependencies..."
-          # Force SDKROOT for manifest compilation
+          # Force iOS target for manifest compilation
           export SDKROOT="${{ env.IOS_DEVICE_SDK }}"
-          # Use xcrun to ensure iOS SDK is used
-          # Note: swift package resolve doesn't accept -Xswiftc flags, but SDKROOT should work
+          export SWIFT_TARGET_TRIPLE="arm64-apple-ios16.0"
+          # Set developer directory to ensure iOS SDK is used
+          export DEVELOPER_DIR="/Applications/Xcode_15.2.app/Contents/Developer"
+          
+          # Try to resolve with explicit SDK
+          # If this fails, swift build will handle dependency resolution
           xcrun --sdk iphoneos swift package resolve \
             --verbose 2>&1 | grep -E "(Fetching|Downloading|Downloaded|Fetched|Resolved|Creating)" || \
-          xcrun --sdk iphoneos swift package resolve
+          xcrun --sdk iphoneos swift package resolve || \
+          echo "⚠️  swift package resolve failed, dependencies will be resolved during build"
           
           # Wait for all downloads to complete
           echo "⏳ Waiting for all downloads to complete..."

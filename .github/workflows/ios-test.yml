@@ -61,6 +61,7 @@ jobs:
       - name: Resolve Swift Package Dependencies
         env:
           SDKROOT: ${{ env.IOS_SDK }}
+          SWIFT_TARGET_TRIPLE: arm64-apple-ios16.0-simulator
         run: |
           if [ "${{ steps.swift-package-cache.outputs.cache-hit }}" == "true" ]; then
             echo "✅ Cache hit! Using cached dependencies"
@@ -68,10 +69,15 @@ jobs:
             echo "📦 Cache miss. Resolving dependencies..."
           fi
           
-          # Force SDKROOT for manifest compilation
+          # Force iOS target for manifest compilation
           export SDKROOT="${{ env.IOS_SDK }}"
-          # Use xcrun with explicit SDK to ensure iOS SDK is used for manifest
-          xcrun --sdk iphonesimulator swift package resolve
+          export SWIFT_TARGET_TRIPLE="arm64-apple-ios16.0-simulator"
+          export DEVELOPER_DIR="/Applications/Xcode_15.2.app/Contents/Developer"
+          
+          # Try to resolve with explicit SDK
+          # If this fails, swift build will handle dependency resolution
+          xcrun --sdk iphonesimulator swift package resolve || \
+          echo "⚠️  swift package resolve failed, dependencies will be resolved during build"
           
           if [ -f Package.resolved ]; then
             echo "✅ Dependencies resolved"
