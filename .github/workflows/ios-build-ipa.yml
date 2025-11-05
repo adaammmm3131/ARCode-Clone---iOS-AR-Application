@@ -29,26 +29,32 @@ jobs:
         with:
           xcode-version: '15.2'
       
-      - name: Create Xcode Project from Swift Package
+      - name: Cache Swift Package Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            ~/.swiftpm
+          key: ${{ runner.os }}-swift-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swift-
+      
+      - name: Resolve Swift Package Dependencies
         run: |
-          # Create an Xcode project from the Swift Package
-          # First, ensure we have Package.swift
+          # Verify Package.swift exists
           if [ ! -f Package.swift ]; then
-            echo "Error: Package.swift not found"
+            echo "❌ Error: Package.swift not found"
             exit 1
           fi
           
-          # Generate Xcode project
-          swift package generate-xcodeproj || {
-            # If generate-xcodeproj doesn't work, create project manually
-            echo "generate-xcodeproj not available, creating project structure..."
-            
-            # Create basic Xcode project structure
-            mkdir -p ARCodeClone.xcodeproj
-            mkdir -p ARCodeClone.xcodeproj/project.xcworkspace
-            mkdir -p ARCodeClone.xcodeproj/xcshareddata
-            mkdir -p ARCodeClone.xcodeproj/xcuserdata
-          }
+          echo "📦 Resolving Swift Package dependencies..."
+          swift package resolve
+          
+          # Show resolved dependencies
+          if [ -f Package.resolved ]; then
+            echo "✅ Dependencies resolved:"
+            cat Package.resolved | head -20
+          fi
       
       - name: Create Info.plist
         run: |
@@ -177,25 +183,12 @@ jobs:
           # Create a minimal Xcode project structure
           mkdir -p build/ARCodeClone.app
           
-          # Use xcodebuild to build for iOS device
-          # First, try to generate Xcode project
-          swift package generate-xcodeproj 2>/dev/null || {
-            echo "generate-xcodeproj not available, using manual build method..."
-            
-            # Build using xcodebuild with SDK iOS
-            xcrun xcodebuild \
-              -scheme ARCodeClone \
-              -configuration Release \
-              -sdk iphoneos \
-              -destination 'generic/platform=iOS' \
-              -archivePath build/ARCodeClone.xcarchive \
-              archive \
-              CODE_SIGN_IDENTITY="" \
-              CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO \
-              DEVELOPMENT_TEAM="" \
-              2>/dev/null || echo "xcodebuild archive failed, will use alternative method"
-          }
+          # Note: swift package generate-xcodeproj is deprecated
+          # We'll use xcodebuild directly with the Swift Package or build manually
+          echo "Using Swift Package Manager for iOS device build..."
+          
+          # Try to open package in Xcode workspace (if available)
+          # Otherwise use direct Swift Package build
           
           # Alternative: Create IPA manually from Swift Package build
           if [ ! -d build/ARCodeClone.xcarchive ]; then
