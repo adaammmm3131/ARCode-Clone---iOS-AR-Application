@@ -31,12 +31,15 @@ jobs:
       
       - name: Cache Swift Package Dependencies
         uses: actions/cache@v4
+        id: swift-package-cache
         with:
           path: |
             .build
             ~/.swiftpm
-          key: ${{ runner.os }}-swift-${{ hashFiles('**/Package.resolved') }}
+            ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-swift-${{ hashFiles('Package.swift') }}-${{ hashFiles('Package.resolved') }}
           restore-keys: |
+            ${{ runner.os }}-swift-${{ hashFiles('Package.swift') }}-
             ${{ runner.os }}-swift-
       
       - name: Resolve Swift Package Dependencies
@@ -47,13 +50,38 @@ jobs:
             exit 1
           fi
           
-          echo "📦 Resolving Swift Package dependencies..."
-          swift package resolve
+          # Check if cache was hit
+          if [ "${{ steps.swift-package-cache.outputs.cache-hit }}" == "true" ]; then
+            echo "✅ Cache hit! Using cached dependencies"
+            echo "Cache restored from previous build"
+          else
+            echo "📦 Cache miss. Resolving dependencies..."
+          fi
           
-          # Show resolved dependencies
+          echo "📦 Resolving Swift Package dependencies..."
+          # Use verbose output to see progress
+          swift package resolve --verbose 2>&1 | grep -E "(Fetching|Downloading|Downloaded|Fetched|Resolved|Creating)" || swift package resolve
+          
+          # Wait for all downloads to complete
+          echo "⏳ Waiting for all downloads to complete..."
+          sleep 2
+          
+          # Verify Package.resolved was created
           if [ -f Package.resolved ]; then
-            echo "✅ Dependencies resolved:"
-            cat Package.resolved | head -20
+            echo "✅ Dependencies resolved successfully!"
+            echo "Package.resolved created/updated"
+            
+            # Show summary
+            echo ""
+            echo "📋 Resolved Dependencies Summary:"
+            cat Package.resolved | grep -E "(identity|version)" | head -20
+            
+            # Count dependencies
+            DEP_COUNT=$(grep -c "identity" Package.resolved || echo "0")
+            echo "Total dependencies: $DEP_COUNT"
+          else
+            echo "⚠️  Warning: Package.resolved not found after resolution"
+            echo "This may cause cache issues in future builds"
           fi
       
       - name: Create Info.plist

@@ -39,16 +39,30 @@ jobs:
           xcrun simctl list devices available
       
       - name: Cache Swift packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
+        id: swift-package-cache
         with:
-          path: .build
-          key: ${{ runner.os }}-swift-${{ hashFiles('**/Package.resolved') }}
+          path: |
+            .build
+            ~/.swiftpm
+          key: ${{ runner.os }}-swift-${{ hashFiles('Package.swift') }}-${{ hashFiles('Package.resolved') }}
           restore-keys: |
+            ${{ runner.os }}-swift-${{ hashFiles('Package.swift') }}-
             ${{ runner.os }}-swift-
       
       - name: Resolve Swift Package Dependencies
         run: |
+          if [ "${{ steps.swift-package-cache.outputs.cache-hit }}" == "true" ]; then
+            echo "✅ Cache hit! Using cached dependencies"
+          else
+            echo "📦 Cache miss. Resolving dependencies..."
+          fi
+          
           swift package resolve
+          
+          if [ -f Package.resolved ]; then
+            echo "✅ Dependencies resolved"
+          fi
       
       - name: Build for Simulator
         run: |
