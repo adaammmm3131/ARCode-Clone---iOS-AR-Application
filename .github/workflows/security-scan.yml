@@ -7,6 +7,12 @@ on:
     branches: [ main, develop ]
   schedule:
     - cron: '0 0 * * 0' # Weekly scan
+  workflow_dispatch:
+
+# Permissions pour CodeQL (nécessaires pour upload SARIF)
+permissions:
+  contents: read
+  security-events: write
 
 jobs:
   security-scan:
@@ -26,10 +32,11 @@ jobs:
           output: 'trivy-results.sarif'
       
       - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
       
       - name: Python dependency check
         working-directory: backend
