@@ -32,30 +32,42 @@ jobs:
             ${{ runner.os }}-swift-${{ hashFiles('Package.swift') }}-
             ${{ runner.os }}-swift-
       
+      - name: Set iOS SDK Environment
+        run: |
+          export IOS_SDK=$(xcrun --show-sdk-path --sdk iphonesimulator)
+          export SDKROOT="$IOS_SDK"
+          echo "IOS_SDK=$IOS_SDK" >> $GITHUB_ENV
+          echo "SDKROOT=$SDKROOT" >> $GITHUB_ENV
+          echo "iOS Simulator SDK: $IOS_SDK"
+      
       - name: Resolve Swift Package Dependencies
+        env:
+          SDKROOT: ${{ env.IOS_SDK }}
         run: |
           if [ "${{ steps.swift-package-cache.outputs.cache-hit }}" == "true" ]; then
             echo "✅ Cache hit! Using cached dependencies"
           else
             echo "📦 Cache miss. Resolving dependencies..."
           fi
-          swift package resolve
-      
-      - name: Set iOS SDK Environment
-        run: |
-          export SDKROOT=$(xcrun --show-sdk-path --sdk iphonesimulator)
-          echo "SDKROOT=$SDKROOT" >> $GITHUB_ENV
-          echo "iOS Simulator SDK: $SDKROOT"
+          
+          # Force SDKROOT for manifest compilation
+          export SDKROOT="${{ env.IOS_SDK }}"
+          # Use xcrun with explicit SDK to ensure iOS SDK is used for manifest
+          xcrun --sdk iphonesimulator swift package resolve
       
       - name: Run tests with coverage for iOS Simulator
+        env:
+          SDKROOT: ${{ env.IOS_SDK }}
         run: |
           echo "Running tests for iOS Simulator with code coverage..."
           
           # Get iOS Simulator SDK path
-          IOS_SDK=$(xcrun --show-sdk-path --sdk iphonesimulator)
+          IOS_SDK="${{ env.IOS_SDK }}"
           echo "Using iOS SDK: $IOS_SDK"
+          echo "SDKROOT: $SDKROOT"
           
           # Build and test with explicit iOS Simulator target
+          export SDKROOT="$IOS_SDK"
           xcrun swift test \
             --enable-code-coverage \
             --parallel \

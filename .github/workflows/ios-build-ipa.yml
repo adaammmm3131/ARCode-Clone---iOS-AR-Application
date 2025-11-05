@@ -12,7 +12,7 @@ on:
       build_for_device:
         description: 'Build for physical device (adhoc) instead of simulator'
         required: false
-        default: 'true'
+        default: true
         type: boolean
 
 jobs:
@@ -42,7 +42,20 @@ jobs:
             ${{ runner.os }}-swift-${{ hashFiles('Package.swift') }}-
             ${{ runner.os }}-swift-
       
+      - name: Set iOS SDK Environment
+        run: |
+          export IOS_SIM_SDK=$(xcrun --show-sdk-path --sdk iphonesimulator)
+          export IOS_DEVICE_SDK=$(xcrun --show-sdk-path --sdk iphoneos)
+          export SDKROOT="$IOS_DEVICE_SDK"
+          echo "IOS_SIM_SDK=$IOS_SIM_SDK" >> $GITHUB_ENV
+          echo "IOS_DEVICE_SDK=$IOS_DEVICE_SDK" >> $GITHUB_ENV
+          echo "SDKROOT=$SDKROOT" >> $GITHUB_ENV
+          echo "iOS Simulator SDK: $IOS_SIM_SDK"
+          echo "iOS Device SDK: $IOS_DEVICE_SDK"
+      
       - name: Resolve Swift Package Dependencies
+        env:
+          SDKROOT: ${{ env.IOS_DEVICE_SDK }}
         run: |
           # Verify Package.swift exists
           if [ ! -f Package.swift ]; then
@@ -59,8 +72,13 @@ jobs:
           fi
           
           echo "📦 Resolving Swift Package dependencies..."
-          # Use verbose output to see progress
-          swift package resolve --verbose 2>&1 | grep -E "(Fetching|Downloading|Downloaded|Fetched|Resolved|Creating)" || swift package resolve
+          # Force SDKROOT for manifest compilation
+          export SDKROOT="${{ env.IOS_DEVICE_SDK }}"
+          # Use xcrun to ensure iOS SDK is used
+          # Note: swift package resolve doesn't accept -Xswiftc flags, but SDKROOT should work
+          xcrun --sdk iphoneos swift package resolve \
+            --verbose 2>&1 | grep -E "(Fetching|Downloading|Downloaded|Fetched|Resolved|Creating)" || \
+          xcrun --sdk iphoneos swift package resolve
           
           # Wait for all downloads to complete
           echo "⏳ Waiting for all downloads to complete..."
@@ -186,18 +204,12 @@ jobs:
           p12-password: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
         continue-on-error: true
       
-      - name: Set iOS SDK Environment
-        run: |
-          export IOS_SIM_SDK=$(xcrun --show-sdk-path --sdk iphonesimulator)
-          export IOS_DEVICE_SDK=$(xcrun --show-sdk-path --sdk iphoneos)
-          echo "IOS_SIM_SDK=$IOS_SIM_SDK" >> $GITHUB_ENV
-          echo "IOS_DEVICE_SDK=$IOS_DEVICE_SDK" >> $GITHUB_ENV
-          echo "iOS Simulator SDK: $IOS_SIM_SDK"
-          echo "iOS Device SDK: $IOS_DEVICE_SDK"
-      
       - name: Build for iOS Simulator (for testing)
+        env:
+          SDKROOT: ${{ env.IOS_SIM_SDK }}
         run: |
           echo "Building Swift Package for iOS Simulator..."
+          export SDKROOT="${{ env.IOS_SIM_SDK }}"
           # Build for iOS Simulator (arm64)
           xcrun swift build \
             -c release \
@@ -213,6 +225,8 @@ jobs:
             }
       
       - name: Build IPA for Device
+        env:
+          SDKROOT: ${{ env.IOS_DEVICE_SDK }}
         run: |
           echo "Building for iOS Device (arm64)..."
           
@@ -221,8 +235,10 @@ jobs:
           
           echo "Using Swift Package Manager for iOS device build..."
           echo "iOS Device SDK: ${{ env.IOS_DEVICE_SDK }}"
+          echo "SDKROOT: $SDKROOT"
           
           # Build Swift Package for iOS device with explicit SDK
+          export SDKROOT="${{ env.IOS_DEVICE_SDK }}"
           xcrun swift build \
             -c release \
             -Xswiftc -sdk \
@@ -238,6 +254,7 @@ jobs:
               echo "⚠️  Device build failed. Trying alternative method..."
               
               # Alternative: Try without version min
+              export SDKROOT="${{ env.IOS_DEVICE_SDK }}"
               xcrun swift build \
                 -c release \
                 -Xswiftc -sdk \
