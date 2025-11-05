@@ -64,13 +64,28 @@ jobs:
             echo "✅ Dependencies resolved"
           fi
       
-      - name: Build for Simulator
+      - name: Build for iOS Simulator
         run: |
-          swift build -c release
+          echo "Building for iOS Simulator (arm64)..."
+          xcrun swift build \
+            -c release \
+            -Xswiftc -sdk \
+            -Xswiftc $(xcrun --show-sdk-path --sdk iphonesimulator) \
+            -Xswiftc -target \
+            -Xswiftc arm64-apple-ios16.0-simulator \
+            --arch arm64
       
-      - name: Run Tests
+      - name: Run Tests on iOS Simulator
         run: |
-          swift test --parallel
+          echo "Running tests for iOS Simulator..."
+          xcrun swift test \
+            --enable-code-coverage \
+            --parallel \
+            -Xswiftc -sdk \
+            -Xswiftc $(xcrun --show-sdk-path --sdk iphonesimulator) \
+            -Xswiftc -target \
+            -Xswiftc arm64-apple-ios16.0-simulator \
+            --arch arm64
       
       - name: Boot iOS Simulator
         run: |
