@@ -6,11 +6,15 @@
 //
 
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 import AVFoundation
 
 protocol AIAnalysisServiceProtocol {
+    #if canImport(UIKit)
     func analyzeImage(_ image: UIImage, prompt: String?, context: String?, completion: @escaping (Result<AIAnalysisResult, Error>) -> Void)
+    #endif
     func synthesizeVoice(from text: String, language: String, completion: @escaping (Result<Data, Error>) -> Void)
 }
 
@@ -54,6 +58,7 @@ final class AIAnalysisService: AIAnalysisServiceProtocol {
     
     // MARK: - Image Analysis
     
+    #if canImport(UIKit)
     func analyzeImage(_ image: UIImage, prompt: String?, context: String?, completion: @escaping (Result<AIAnalysisResult, Error>) -> Void) {
         // Convertir image en base64
         guard let imageData = image.jpegData(compressionQuality: 0.8) else {
@@ -111,6 +116,7 @@ final class AIAnalysisService: AIAnalysisServiceProtocol {
             }
         }
     }
+    #endif
     
     // MARK: - Voice Synthesis
     

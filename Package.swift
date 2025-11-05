@@ -7,8 +7,7 @@ import PackageDescription
 let package = Package(
     name: "ARCodeClone",
     platforms: [
-        .iOS(.v16),
-        .macOS(.v13)
+        .iOS(.v16)
     ],
     products: [
         .library(
@@ -43,7 +42,7 @@ let package = Package(
             dependencies: ["ARCodeClone"],
             path: "Tests",
             linkerSettings: [
-                .linkedFramework("XCTest", .when(platforms: [.iOS, .macOS]))
+                .linkedFramework("XCTest", .when(platforms: [.iOS]))
             ]
         )
     ]
