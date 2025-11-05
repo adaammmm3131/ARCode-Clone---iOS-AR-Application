@@ -130,24 +130,27 @@ jobs:
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
           echo "BUNDLE_ID=com.arcode.clone" >> $GITHUB_ENV
       
+      - name: Check Code Signing Status
+        id: check-signing
+        run: |
+          if [ -n "${{ secrets.IOS_CERTIFICATE_P12 }}" ] && [ "${{ secrets.IOS_CERTIFICATE_P12 }}" != "" ]; then
+            echo "✅ Code signing certificate available."
+            echo "has_cert=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️  No code signing certificate provided. Building without signing."
+            echo "This IPA can be installed via AltStore or Sideloadly (7-day expiration)."
+            echo "For production builds, configure IOS_CERTIFICATE_P12 and IOS_CERTIFICATE_PASSWORD secrets."
+            echo "has_cert=false" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Import Code Signing (if available)
         id: import-certs
-        if: ${{ secrets.IOS_CERTIFICATE_P12 != '' && secrets.IOS_CERTIFICATE_P12 != null }}
+        if: steps.check-signing.outputs.has_cert == 'true'
         uses: apple-actions/import-codesign-certs@v2
         with:
           p12-file-base64: ${{ secrets.IOS_CERTIFICATE_P12 }}
           p12-password: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
         continue-on-error: true
-      
-      - name: Check Code Signing Status
-        run: |
-          if [ -z "${{ secrets.IOS_CERTIFICATE_P12 }}" ]; then
-            echo "⚠️  No code signing certificate provided. Building without signing."
-            echo "This IPA can be installed via AltStore or Sideloadly (7-day expiration)."
-            echo "For production builds, configure IOS_CERTIFICATE_P12 and IOS_CERTIFICATE_PASSWORD secrets."
-          else
-            echo "✅ Code signing certificate available."
-          fi
       
       - name: Build IPA with xcodebuild
         run: |
