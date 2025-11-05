@@ -152,65 +152,113 @@ jobs:
           p12-password: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
         continue-on-error: true
       
-      - name: Build IPA with xcodebuild
+      - name: Build for iOS Simulator (for testing)
         run: |
-          # Try to build with xcodebuild if we have a proper project
-          # Otherwise, create a simple app structure
-          
-          # Method 1: Try to use Swift Package to build an app
-          # Create a simple app wrapper
-          mkdir -p ARCodeCloneApp
-          
-          # Copy main app file
-          cp Sources/ARCodeCloneApp.swift ARCodeCloneApp/ARCodeCloneApp.swift 2>/dev/null || true
-          
-          # Build using swift build and create IPA manually
-          echo "Building Swift Package..."
-          swift build -c release --arch arm64
-          
-          # Create app bundle structure
-          mkdir -p build/ARCodeClone.app
-          mkdir -p build/ARCodeClone.app/Frameworks
-          
-          # Copy built binary
-          cp .build/release/ARCodeClone build/ARCodeClone.app/ARCodeClone 2>/dev/null || true
-          
-          # Copy Info.plist
-          cp ARCodeClone/Info.plist build/ARCodeClone.app/Info.plist 2>/dev/null || true
-          
-          # Create IPA structure
-          mkdir -p build/Payload
-          cp -r build/ARCodeClone.app build/Payload/
-          
-          # Create IPA
-          cd build
-          zip -r ARCodeClone.ipa Payload/
-          cd ..
-          
-          echo "IPA created at build/ARCodeClone.ipa"
+          echo "Building Swift Package for iOS Simulator..."
+          # Build for iOS Simulator (arm64)
+          xcrun swift build \
+            -c release \
+            -Xswiftc -sdk \
+            -Xswiftc $(xcrun --show-sdk-path --sdk iphonesimulator) \
+            -Xswiftc -target \
+            -Xswiftc arm64-apple-ios16.0-simulator \
+            --arch arm64 || {
+              echo "iOS Simulator build failed, trying alternative method..."
+              # Alternative: Build using xcodebuild if we can create a project
+              swift package resolve
+              # Just verify the package compiles
+              swift build -c release --arch arm64 || echo "Build verification failed"
+            }
       
-      - name: Build IPA Alternative Method
-        if: failure()
+      - name: Build IPA for Device
         run: |
-          # Alternative: Use xcodebuild with a generated project
-          echo "Using alternative build method..."
+          echo "Building for iOS Device (arm64)..."
           
-          # Create a basic Xcode project using swift package
+          # Create a minimal Xcode project structure
+          mkdir -p build/ARCodeClone.app
+          
+          # Use xcodebuild to build for iOS device
+          # First, try to generate Xcode project
           swift package generate-xcodeproj 2>/dev/null || {
-            # Create minimal project manually
-            echo "Creating minimal Xcode project..."
+            echo "generate-xcodeproj not available, using manual build method..."
+            
+            # Build using xcodebuild with SDK iOS
+            xcrun xcodebuild \
+              -scheme ARCodeClone \
+              -configuration Release \
+              -sdk iphoneos \
+              -destination 'generic/platform=iOS' \
+              -archivePath build/ARCodeClone.xcarchive \
+              archive \
+              CODE_SIGN_IDENTITY="" \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO \
+              DEVELOPMENT_TEAM="" \
+              2>/dev/null || echo "xcodebuild archive failed, will use alternative method"
           }
           
-          # Build archive
-          xcodebuild archive \
-            -scheme ARCodeClone \
-            -configuration Release \
-            -archivePath build/ARCodeClone.xcarchive \
-            -destination 'generic/platform=iOS' \
-            CODE_SIGN_STYLE=Automatic \
-            DEVELOPMENT_TEAM="" \
-            CODE_SIGN_IDENTITY="iPhone Developer" \
-            || echo "xcodebuild failed, using Swift Package build instead"
+          # Alternative: Create IPA manually from Swift Package build
+          if [ ! -d build/ARCodeClone.xcarchive ]; then
+            echo "Creating IPA manually from package structure..."
+            
+            # Build Swift Package for iOS device
+            xcrun swift build \
+              -c release \
+              -Xswiftc -sdk \
+              -Xswiftc $(xcrun --show-sdk-path --sdk iphoneos) \
+              -Xswiftc -target \
+              -Xswiftc arm64-apple-ios16.0 \
+              --arch arm64 || {
+                echo "⚠️  Device build failed. IPA will be for simulator only."
+                echo "Note: To build for device, you need a proper Xcode project or code signing."
+              }
+          fi
+      
+      - name: Create IPA from Archive or Package
+        run: |
+          mkdir -p build/Payload
+          
+          # Method 1: Export from xcodebuild archive
+          if [ -d build/ARCodeClone.xcarchive ]; then
+            echo "Exporting IPA from xcodebuild archive..."
+            xcodebuild -exportArchive \
+              -archivePath build/ARCodeClone.xcarchive \
+              -exportPath build \
+              -exportOptionsPlist exportOptions.plist \
+              CODE_SIGN_IDENTITY="" \
+              CODE_SIGNING_REQUIRED=NO \
+              2>/dev/null || echo "Export from archive failed"
+          fi
+          
+          # Method 2: Create IPA manually from Swift Package
+          if [ ! -f build/ARCodeClone.ipa ] && [ -f .build/release/ARCodeClone ]; then
+            echo "Creating IPA from Swift Package build..."
+            
+            # Create app bundle
+            mkdir -p build/Payload/ARCodeClone.app
+            cp .build/release/ARCodeClone build/Payload/ARCodeClone.app/ARCodeClone
+            
+            # Copy Info.plist if exists
+            if [ -f ARCodeClone/Info.plist ]; then
+              cp ARCodeClone/Info.plist build/Payload/ARCodeClone.app/Info.plist
+            fi
+            
+            # Create IPA
+            cd build
+            zip -r ARCodeClone.ipa Payload/
+            cd ..
+            
+            echo "✅ IPA created at build/ARCodeClone.ipa"
+          fi
+          
+          # Verify IPA exists
+          if [ -f build/ARCodeClone.ipa ]; then
+            echo "✅ IPA file created successfully"
+            ls -lh build/ARCodeClone.ipa
+          else
+            echo "⚠️  IPA file not created. Check build logs for errors."
+            exit 1
+          fi
       
       - name: Export IPA
         if: success() || failure()
