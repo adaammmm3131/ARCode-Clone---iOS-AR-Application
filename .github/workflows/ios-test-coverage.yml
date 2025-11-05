@@ -27,6 +27,7 @@ jobs:
           path: |
             .build
             ~/.swiftpm
+            Package.resolved
           key: ${{ runner.os }}-swift-${{ hashFiles('Package.swift') }}-${{ hashFiles('Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-swift-${{ hashFiles('Package.swift') }}-
@@ -40,10 +41,22 @@ jobs:
           echo "SDKROOT=$SDKROOT" >> $GITHUB_ENV
           echo "iOS Simulator SDK: $IOS_SDK"
       
+      - name: Resolve Dependencies (if needed)
+        run: |
+          # Only resolve if Package.resolved doesn't exist
+          # This allows us to use cached resolution from previous builds
+          if [ -f Package.resolved ]; then
+            echo "✅ Using existing Package.resolved from cache"
+          else
+            echo "📦 Package.resolved not found, attempting to resolve..."
+            # Try to resolve with macOS SDK (this will work for manifest compilation)
+            # The actual source code will be compiled with iOS SDK later
+            swift package resolve || echo "⚠️  Resolution failed, will try during build"
+          fi
+      
       - name: Build and Test for iOS Simulator
         env:
           SDKROOT: ${{ env.IOS_SDK }}
-          SWIFT_TARGET_TRIPLE: arm64-apple-ios16.0-simulator
         run: |
           echo "Building and testing for iOS Simulator with code coverage..."
           
@@ -54,11 +67,10 @@ jobs:
           
           # Force iOS environment
           export SDKROOT="$IOS_SDK"
-          export SWIFT_TARGET_TRIPLE="arm64-apple-ios16.0-simulator"
           export DEVELOPER_DIR="/Applications/Xcode_15.2.app/Contents/Developer"
           
-          # Build tests directly with iOS SDK flags (this bypasses manifest compilation issue)
-          # swift build --build-tests will resolve dependencies AND compile with correct SDK
+          # Build tests with iOS SDK flags
+          # Note: The manifest was compiled with macOS SDK, but source code uses iOS SDK
           echo "📦 Building tests with iOS SDK..."
           xcrun swift build \
             --build-tests \
@@ -70,7 +82,7 @@ jobs:
             -Xswiftc -isysroot \
             -Xswiftc "$IOS_SDK" \
             --arch arm64 || {
-              echo "⚠️  Build failed, trying without explicit arch..."
+              echo "⚠️  Build with arch failed, trying without explicit arch..."
               xcrun swift build \
                 --build-tests \
                 -Xswiftc -sdk \
