@@ -41,16 +41,31 @@ jobs:
           fi
           swift package resolve
       
+      - name: Set iOS SDK Environment
+        run: |
+          export SDKROOT=$(xcrun --show-sdk-path --sdk iphonesimulator)
+          echo "SDKROOT=$SDKROOT" >> $GITHUB_ENV
+          echo "iOS Simulator SDK: $SDKROOT"
+      
       - name: Run tests with coverage for iOS Simulator
         run: |
           echo "Running tests for iOS Simulator with code coverage..."
+          
+          # Get iOS Simulator SDK path
+          IOS_SDK=$(xcrun --show-sdk-path --sdk iphonesimulator)
+          echo "Using iOS SDK: $IOS_SDK"
+          
+          # Build and test with explicit iOS Simulator target
           xcrun swift test \
             --enable-code-coverage \
             --parallel \
             -Xswiftc -sdk \
-            -Xswiftc $(xcrun --show-sdk-path --sdk iphonesimulator) \
+            -Xswiftc "$IOS_SDK" \
             -Xswiftc -target \
             -Xswiftc arm64-apple-ios16.0-simulator \
+            -Xswiftc -Xcc \
+            -Xswiftc -isysroot \
+            -Xswiftc "$IOS_SDK" \
             --arch arm64
       
       - name: Generate coverage report

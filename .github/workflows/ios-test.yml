@@ -64,15 +64,24 @@ jobs:
             echo "✅ Dependencies resolved"
           fi
       
+      - name: Set iOS SDK Environment
+        run: |
+          export IOS_SDK=$(xcrun --show-sdk-path --sdk iphonesimulator)
+          echo "IOS_SDK=$IOS_SDK" >> $GITHUB_ENV
+          echo "iOS Simulator SDK: $IOS_SDK"
+      
       - name: Build for iOS Simulator
         run: |
           echo "Building for iOS Simulator (arm64)..."
           xcrun swift build \
             -c release \
             -Xswiftc -sdk \
-            -Xswiftc $(xcrun --show-sdk-path --sdk iphonesimulator) \
+            -Xswiftc "${{ env.IOS_SDK }}" \
             -Xswiftc -target \
             -Xswiftc arm64-apple-ios16.0-simulator \
+            -Xswiftc -Xcc \
+            -Xswiftc -isysroot \
+            -Xswiftc "${{ env.IOS_SDK }}" \
             --arch arm64
       
       - name: Run Tests on iOS Simulator
@@ -82,9 +91,12 @@ jobs:
             --enable-code-coverage \
             --parallel \
             -Xswiftc -sdk \
-            -Xswiftc $(xcrun --show-sdk-path --sdk iphonesimulator) \
+            -Xswiftc "${{ env.IOS_SDK }}" \
             -Xswiftc -target \
             -Xswiftc arm64-apple-ios16.0-simulator \
+            -Xswiftc -Xcc \
+            -Xswiftc -isysroot \
+            -Xswiftc "${{ env.IOS_SDK }}" \
             --arch arm64
       
       - name: Boot iOS Simulator

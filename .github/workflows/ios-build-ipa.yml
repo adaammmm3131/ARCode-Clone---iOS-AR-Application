@@ -186,6 +186,15 @@ jobs:
           p12-password: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
         continue-on-error: true
       
+      - name: Set iOS SDK Environment
+        run: |
+          export IOS_SIM_SDK=$(xcrun --show-sdk-path --sdk iphonesimulator)
+          export IOS_DEVICE_SDK=$(xcrun --show-sdk-path --sdk iphoneos)
+          echo "IOS_SIM_SDK=$IOS_SIM_SDK" >> $GITHUB_ENV
+          echo "IOS_DEVICE_SDK=$IOS_DEVICE_SDK" >> $GITHUB_ENV
+          echo "iOS Simulator SDK: $IOS_SIM_SDK"
+          echo "iOS Device SDK: $IOS_DEVICE_SDK"
+      
       - name: Build for iOS Simulator (for testing)
         run: |
           echo "Building Swift Package for iOS Simulator..."
@@ -193,15 +202,14 @@ jobs:
           xcrun swift build \
             -c release \
             -Xswiftc -sdk \
-            -Xswiftc $(xcrun --show-sdk-path --sdk iphonesimulator) \
+            -Xswiftc "${{ env.IOS_SIM_SDK }}" \
             -Xswiftc -target \
             -Xswiftc arm64-apple-ios16.0-simulator \
+            -Xswiftc -Xcc \
+            -Xswiftc -isysroot \
+            -Xswiftc "${{ env.IOS_SIM_SDK }}" \
             --arch arm64 || {
-              echo "iOS Simulator build failed, trying alternative method..."
-              # Alternative: Build using xcodebuild if we can create a project
-              swift package resolve
-              # Just verify the package compiles
-              swift build -c release --arch arm64 || echo "Build verification failed"
+              echo "⚠️  iOS Simulator build failed, will try device build"
             }
       
       - name: Build IPA for Device
@@ -211,29 +219,33 @@ jobs:
           # Create a minimal Xcode project structure
           mkdir -p build/ARCodeClone.app
           
-          # Note: swift package generate-xcodeproj is deprecated
-          # We'll use xcodebuild directly with the Swift Package or build manually
           echo "Using Swift Package Manager for iOS device build..."
+          echo "iOS Device SDK: ${{ env.IOS_DEVICE_SDK }}"
           
-          # Try to open package in Xcode workspace (if available)
-          # Otherwise use direct Swift Package build
-          
-          # Alternative: Create IPA manually from Swift Package build
-          if [ ! -d build/ARCodeClone.xcarchive ]; then
-            echo "Creating IPA manually from package structure..."
-            
-            # Build Swift Package for iOS device
-            xcrun swift build \
-              -c release \
-              -Xswiftc -sdk \
-              -Xswiftc $(xcrun --show-sdk-path --sdk iphoneos) \
-              -Xswiftc -target \
-              -Xswiftc arm64-apple-ios16.0 \
-              --arch arm64 || {
-                echo "⚠️  Device build failed. IPA will be for simulator only."
-                echo "Note: To build for device, you need a proper Xcode project or code signing."
-              }
-          fi
+          # Build Swift Package for iOS device with explicit SDK
+          xcrun swift build \
+            -c release \
+            -Xswiftc -sdk \
+            -Xswiftc "${{ env.IOS_DEVICE_SDK }}" \
+            -Xswiftc -target \
+            -Xswiftc arm64-apple-ios16.0 \
+            -Xswiftc -Xcc \
+            -Xswiftc -isysroot \
+            -Xswiftc "${{ env.IOS_DEVICE_SDK }}" \
+            -Xswiftc -Xcc \
+            -Xswiftc -miphoneos-version-min=16.0 \
+            --arch arm64 || {
+              echo "⚠️  Device build failed. Trying alternative method..."
+              
+              # Alternative: Try without version min
+              xcrun swift build \
+                -c release \
+                -Xswiftc -sdk \
+                -Xswiftc "${{ env.IOS_DEVICE_SDK }}" \
+                -Xswiftc -target \
+                -Xswiftc arm64-apple-ios16.0 \
+                --arch arm64 || echo "All build methods failed"
+            }
       
       - name: Create IPA from Archive or Package
         id: create-ipa
